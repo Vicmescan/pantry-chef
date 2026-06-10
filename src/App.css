@@ -30,11 +30,52 @@
   margin-top: 0;
 }
 
-.install-button {
-  margin-top: 0.75rem;
+.install-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: -2rem -2rem 0;
+  padding: 0.75rem 2rem;
   background-color: #646cff;
   color: white;
+  font-size: 0.9em;
+}
+
+@media (max-width: 480px) {
+  .install-bar {
+    font-size: 0.8em;
+    padding: 0.6em 1em;
+  }
+}
+
+.install-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.install-button {
+  background-color: white;
+  color: #646cff;
   font-weight: 600;
+  padding: 0.4em 1em;
+}
+
+.install-dismiss {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.3em;
+  line-height: 1;
+  padding: 0.2em 0.5em;
+  cursor: pointer;
+}
+
+.install-dismiss:hover {
+  border-color: transparent;
+  opacity: 0.8;
 }
 
 .input-row {

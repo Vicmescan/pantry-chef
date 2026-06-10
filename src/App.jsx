@@ -230,14 +230,27 @@ function App() {
 
   return (
     <div className="app">
+      {installPrompt && (
+        <div className="install-bar">
+          <span>⬇️ Install Pantry Chef for quick access</span>
+          <div className="install-bar-actions">
+            <button className="install-button" onClick={handleInstallClick}>
+              Install
+            </button>
+            <button
+              className="install-dismiss"
+              onClick={() => setInstallPrompt(null)}
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="header">
         <h1>🍳 What can I cook with this?</h1>
         <p>Add the ingredients you have at home and we&apos;ll find recipes that use them.</p>
-        {installPrompt && (
-          <button className="install-button" onClick={handleInstallClick}>
-            ⬇️ Install app
-          </button>
-        )}
       </header>
 
       <div className="input-row">
