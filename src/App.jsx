@@ -331,6 +331,16 @@ function App() {
           </div>
         ))}
       </div>
+
+      <footer className="footer">
+        <p>
+          Recipe data provided by{' '}
+          <a href="https://www.themealdb.com/" target="_blank" rel="noreferrer">
+            TheMealDB
+          </a>. This is a personal, non-commercial project and is not affiliated with TheMealDB.
+        </p>
+        <p>© {new Date().getFullYear()} Pantry Chef. All recipe content and images belong to their respective owners.</p>
+      </footer>
     </div>
   )
 }
