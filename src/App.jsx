@@ -1,20 +1,49 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
-import { translateIngredient } from './ingredientTranslations'
 
 const API_BASE = 'https://www.themealdb.com/api/json/v1/1'
+const STORAGE_KEY = 'recetas-app:ingredients'
+
+// Cachés en memoria para no repetir peticiones ya hechas en búsquedas
+// anteriores (p. ej. al añadir/quitar un ingrediente y volver a buscar,
+// la mayoría de candidatos y detalles se reutilizan).
+const filterCache = new Map() // ingrediente (param API) -> meals[]
+const lookupCache = new Map() // idMeal -> detalle de la receta
 
 function normalize(text) {
   return text.toLowerCase().trim()
 }
 
+function loadStoredIngredients() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 function App() {
   const [ingredientInput, setIngredientInput] = useState('')
-  const [ingredients, setIngredients] = useState([])
+  const [ingredients, setIngredients] = useState(loadStoredIngredients)
+  const [knownIngredients, setKnownIngredients] = useState([])
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/list.php?i=list`)
+      .then((res) => res.json())
+      .then((data) => {
+        const names = (data.meals || [])
+          .map((m) => normalize(m.strIngredient))
+          .sort()
+        setKnownIngredients(names)
+      })
+      .catch(() => setKnownIngredients([]))
+  }, [])
 
   const addIngredient = () => {
     const value = normalize(ingredientInput)
@@ -27,6 +56,12 @@ function App() {
   const removeIngredient = (ing) => {
     setIngredients(ingredients.filter((i) => i !== ing))
   }
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ingredients))
+  }, [ingredients])
+
+  const suggestions = knownIngredients.filter((ing) => !ingredients.includes(ing))
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -47,17 +82,20 @@ function App() {
       const candidates = new Map()
 
       for (const ing of ingredients) {
-        const param = translateIngredient(ing).replace(/\s+/g, '_')
-        const res = await fetch(`${API_BASE}/filter.php?i=${encodeURIComponent(param)}`)
-        const data = await res.json()
-        if (data.meals) {
-          for (const meal of data.meals) {
-            const existing = candidates.get(meal.idMeal)
-            if (existing) {
-              existing.matchCount += 1
-            } else {
-              candidates.set(meal.idMeal, { ...meal, matchCount: 1 })
-            }
+        const param = ing.replace(/\s+/g, '_')
+        let meals = filterCache.get(param)
+        if (meals === undefined) {
+          const res = await fetch(`${API_BASE}/filter.php?i=${encodeURIComponent(param)}`)
+          const data = await res.json()
+          meals = data.meals || []
+          filterCache.set(param, meals)
+        }
+        for (const meal of meals) {
+          const existing = candidates.get(meal.idMeal)
+          if (existing) {
+            existing.matchCount += 1
+          } else {
+            candidates.set(meal.idMeal, { ...meal, matchCount: 1 })
           }
         }
       }
@@ -77,16 +115,17 @@ function App() {
       // 3. Obtener el detalle (lista completa de ingredientes) de cada candidata
       const detailed = await Promise.all(
         topCandidates.map(async (c) => {
+          if (lookupCache.has(c.idMeal)) return lookupCache.get(c.idMeal)
           const res = await fetch(`${API_BASE}/lookup.php?i=${c.idMeal}`)
           const data = await res.json()
-          return data.meals ? data.meals[0] : null
+          const meal = data.meals ? data.meals[0] : null
+          lookupCache.set(c.idMeal, meal)
+          return meal
         })
       )
 
-      // 4. Calcular qué ingredientes faltan respecto a lo que tiene el usuario.
-      // TheMealDB devuelve los ingredientes en inglés, así que comparamos
-      // contra la traducción de lo que el usuario ha introducido.
-      const userSet = ingredients.map((ing) => translateIngredient(normalize(ing)))
+      // 4. Calcular qué ingredientes faltan respecto a lo que tiene el usuario
+      const userSet = ingredients.map(normalize)
       const processed = detailed
         .filter(Boolean)
         .map((meal) => {
@@ -124,7 +163,7 @@ function App() {
 
       setResults(processed)
     } catch (err) {
-      setError('Hubo un error al buscar recetas. Comprueba tu conexión e inténtalo de nuevo.')
+      setError('There was an error searching for recipes. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -133,8 +172,8 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>🍳 ¿Qué cocino con esto?</h1>
-        <p>Añade los ingredientes que tienes en casa y te buscaremos recetas que los aprovechen.</p>
+        <h1>🍳 What can I cook with this?</h1>
+        <p>Add the ingredients you have at home and we&apos;ll find recipes that use them.</p>
       </header>
 
       <div className="input-row">
@@ -143,9 +182,15 @@ function App() {
           value={ingredientInput}
           onChange={(e) => setIngredientInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ej: pollo, arroz, tomate..."
+          placeholder="E.g: chicken, rice, tomato..."
+          list="ingredient-suggestions"
         />
-        <button onClick={addIngredient}>Añadir</button>
+        <datalist id="ingredient-suggestions">
+          {suggestions.map((ing) => (
+            <option key={ing} value={ing} />
+          ))}
+        </datalist>
+        <button onClick={addIngredient}>Add</button>
       </div>
 
       {ingredients.length > 0 && (
@@ -153,7 +198,7 @@ function App() {
           {ingredients.map((ing) => (
             <span className="chip" key={ing}>
               {ing}
-              <button className="chip-remove" onClick={() => removeIngredient(ing)} aria-label={`Quitar ${ing}`}>
+              <button className="chip-remove" onClick={() => removeIngredient(ing)} aria-label={`Remove ${ing}`}>
                 ×
               </button>
             </span>
@@ -166,13 +211,13 @@ function App() {
         onClick={search}
         disabled={ingredients.length === 0 || loading}
       >
-        {loading ? 'Buscando...' : 'Buscar recetas'}
+        {loading ? 'Searching...' : 'Search recipes'}
       </button>
 
       {error && <p className="error">{error}</p>}
 
       {searched && !loading && results.length === 0 && !error && (
-        <p className="empty">No hemos encontrado recetas con esos ingredientes. Prueba a añadir o quitar alguno.</p>
+        <p className="empty">We couldn&apos;t find any recipes with these ingredients. Try adding or removing one.</p>
       )}
 
       <div className="results">
@@ -184,16 +229,16 @@ function App() {
               <p className="meta">{recipe.area} · {recipe.category}</p>
 
               {recipe.missing.length === 0 ? (
-                <p className="badge badge-ok">✅ ¡Tienes todo lo necesario!</p>
+                <p className="badge badge-ok">✅ You have everything you need!</p>
               ) : (
                 <p className="badge badge-warning">
-                  Te faltan {recipe.missing.length} de {recipe.totalIngredients} ingredientes
+                  Missing {recipe.missing.length} of {recipe.totalIngredients} ingredients
                 </p>
               )}
 
               {recipe.missing.length > 0 && (
                 <details>
-                  <summary>Ver ingredientes que faltan</summary>
+                  <summary>See missing ingredients</summary>
                   <ul>
                     {recipe.missing.map((m, idx) => (
                       <li key={`${m.name}-${idx}`}>
@@ -207,20 +252,20 @@ function App() {
               <div className="links">
                 {recipe.source && (
                   <a href={recipe.source} target="_blank" rel="noreferrer">
-                    Ver receta original
+                    View original recipe
                   </a>
                 )}
                 {recipe.youtube && (
                   <a href={recipe.youtube} target="_blank" rel="noreferrer">
-                    Ver vídeo
+                    Watch video
                   </a>
                 )}
                 <a
-                  href={`https://www.google.com/search?q=${encodeURIComponent(recipe.name + ' receta')}`}
+                  href={`https://www.google.com/search?q=${encodeURIComponent(recipe.name + ' recipe')}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Buscar en Google
+                  Search on Google
                 </a>
               </div>
             </div>
