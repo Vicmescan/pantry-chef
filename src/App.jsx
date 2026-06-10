@@ -32,6 +32,8 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
 
   useEffect(() => {
     fetch(`${API_BASE}/list.php?i=list`)
@@ -45,12 +47,14 @@ function App() {
       .catch(() => setKnownIngredients([]))
   }, [])
 
-  const addIngredient = () => {
-    const value = normalize(ingredientInput)
+  const addIngredient = (raw = ingredientInput) => {
+    const value = normalize(raw)
     if (value && !ingredients.includes(value)) {
       setIngredients([...ingredients, value])
     }
     setIngredientInput('')
+    setShowSuggestions(false)
+    setHighlightedIndex(-1)
   }
 
   const removeIngredient = (ing) => {
@@ -61,12 +65,44 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ingredients))
   }, [ingredients])
 
-  const suggestions = knownIngredients.filter((ing) => !ingredients.includes(ing))
+  // Sugerencias que contienen el texto escrito (no solo que empiecen por él),
+  // priorizando las que empiezan por el texto y luego las más cortas.
+  const normalizedInput = normalize(ingredientInput)
+  const suggestions = normalizedInput
+    ? knownIngredients
+        .filter((ing) => !ingredients.includes(ing) && ing.includes(normalizedInput))
+        .sort((a, b) => {
+          const aStarts = a.startsWith(normalizedInput)
+          const bStarts = b.startsWith(normalizedInput)
+          if (aStarts !== bStarts) return aStarts ? -1 : 1
+          return a.length - b.length || a.localeCompare(b)
+        })
+        .slice(0, 8)
+    : []
+
+  const handleInputChange = (e) => {
+    setIngredientInput(e.target.value)
+    setShowSuggestions(true)
+    setHighlightedIndex(-1)
+  }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'ArrowDown' && suggestions.length > 0) {
       e.preventDefault()
-      addIngredient()
+      setHighlightedIndex((i) => (i + 1) % suggestions.length)
+    } else if (e.key === 'ArrowUp' && suggestions.length > 0) {
+      e.preventDefault()
+      setHighlightedIndex((i) => (i - 1 + suggestions.length) % suggestions.length)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+        addIngredient(suggestions[highlightedIndex])
+      } else {
+        addIngredient()
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false)
+      setHighlightedIndex(-1)
     }
   }
 
@@ -177,20 +213,43 @@ function App() {
       </header>
 
       <div className="input-row">
-        <input
-          type="text"
-          value={ingredientInput}
-          onChange={(e) => setIngredientInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="E.g: chicken, rice, tomato..."
-          list="ingredient-suggestions"
-        />
-        <datalist id="ingredient-suggestions">
-          {suggestions.map((ing) => (
-            <option key={ing} value={ing} />
-          ))}
-        </datalist>
-        <button onClick={addIngredient}>Add</button>
+        <div className="input-wrapper">
+          <input
+            type="text"
+            value={ingredientInput}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+            placeholder="E.g: chicken, rice, tomato..."
+            role="combobox"
+            aria-expanded={showSuggestions && suggestions.length > 0}
+            aria-autocomplete="list"
+            autoComplete="off"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="suggestions">
+              {suggestions.map((ing, idx) => {
+                const matchStart = ing.indexOf(normalizedInput)
+                const matchEnd = matchStart + normalizedInput.length
+                return (
+                  <li
+                    key={ing}
+                    className={idx === highlightedIndex ? 'active' : ''}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    onClick={() => addIngredient(ing)}
+                  >
+                    {ing.slice(0, matchStart)}
+                    <mark>{ing.slice(matchStart, matchEnd)}</mark>
+                    {ing.slice(matchEnd)}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+        <button onClick={() => addIngredient()}>Add</button>
       </div>
 
       {ingredients.length > 0 && (
