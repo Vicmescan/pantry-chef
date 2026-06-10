@@ -30,6 +30,13 @@
   margin-top: 0;
 }
 
+.install-button {
+  margin-top: 0.75rem;
+  background-color: #646cff;
+  color: white;
+  font-weight: 600;
+}
+
 .input-row {
   display: flex;
   gap: 0.5rem;

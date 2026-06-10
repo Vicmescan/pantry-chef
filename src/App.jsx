@@ -34,6 +34,29 @@ function App() {
   const [searched, setSearched] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [installPrompt, setInstallPrompt] = useState(null)
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+    const handleAppInstalled = () => setInstallPrompt(null)
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    await installPrompt.userChoice
+    setInstallPrompt(null)
+  }
 
   useEffect(() => {
     fetch(`${API_BASE}/list.php?i=list`)
@@ -210,6 +233,11 @@ function App() {
       <header className="header">
         <h1>🍳 What can I cook with this?</h1>
         <p>Add the ingredients you have at home and we&apos;ll find recipes that use them.</p>
+        {installPrompt && (
+          <button className="install-button" onClick={handleInstallClick}>
+            ⬇️ Install app
+          </button>
+        )}
       </header>
 
       <div className="input-row">
