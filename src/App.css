@@ -1,0 +1,175 @@
+#root {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: left;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.header {
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 2.2em;
+  margin-bottom: 0.25rem;
+}
+
+.header p {
+  color: #888;
+  margin-top: 0;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 0.6em 1em;
+  font-size: 1em;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background-color: #1a1a1a;
+  color: inherit;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #333;
+  border-radius: 999px;
+  padding: 0.3em 0.4em 0.3em 0.9em;
+  font-size: 0.95em;
+  text-transform: capitalize;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 0.2em 0.5em;
+  border-radius: 999px;
+}
+
+.chip-remove:hover {
+  background-color: #555;
+  border-color: transparent;
+}
+
+.search-button {
+  align-self: flex-start;
+  background-color: #646cff;
+  color: white;
+  font-weight: 600;
+}
+
+.search-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+.empty {
+  color: #888;
+  text-align: center;
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.results .card {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #333;
+  background-color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.results .card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.card-body {
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-body h3 {
+  margin: 0;
+  font-size: 1.1em;
+}
+
+.meta {
+  margin: 0;
+  color: #888;
+  font-size: 0.85em;
+}
+
+.badge {
+  margin: 0;
+  font-size: 0.85em;
+  font-weight: 600;
+  padding: 0.3em 0.6em;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.badge-ok {
+  background-color: #1f3d2b;
+  color: #6fde9b;
+}
+
+.badge-warning {
+  background-color: #3d341f;
+  color: #ffcb6f;
+}
+
+details summary {
+  cursor: pointer;
+  font-size: 0.9em;
+  color: #aaa;
+}
+
+details ul {
+  margin: 0.5em 0 0;
+  padding-left: 1.2em;
+  font-size: 0.9em;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  font-size: 0.9em;
+}
