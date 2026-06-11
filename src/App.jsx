@@ -232,18 +232,20 @@ function App() {
     <div className="app">
       {installPrompt && (
         <div className="install-bar">
-          <span>⬇️ Install Pantry Chef for quick access</span>
-          <div className="install-bar-actions">
-            <button className="install-button" onClick={handleInstallClick}>
-              Install
-            </button>
-            <button
-              className="install-dismiss"
-              onClick={() => setInstallPrompt(null)}
-              aria-label="Dismiss"
-            >
-              ×
-            </button>
+          <div className="install-bar-inner">
+            <span>⬇️ Install Pantry Chef for quick access</span>
+            <div className="install-bar-actions">
+              <button className="install-button" onClick={handleInstallClick}>
+                Install
+              </button>
+              <button
+                className="install-dismiss"
+                onClick={() => setInstallPrompt(null)}
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
           </div>
         </div>
       )}
